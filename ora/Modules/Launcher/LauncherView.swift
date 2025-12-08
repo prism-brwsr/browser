@@ -1,0 +1,149 @@
+import AppKit
+import SwiftUI
+
+struct LauncherView: View {
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var toolbarManager: ToolbarManager
+    @EnvironmentObject var tabManager: TabManager
+    @EnvironmentObject var historyManager: HistoryManager
+    @EnvironmentObject var downloadManager: DownloadManager
+    @EnvironmentObject var privacyMode: PrivacyMode
+    @EnvironmentObject var sidebarManager: SidebarManager
+    @Environment(\.theme) private var theme
+    @StateObject private var searchEngineService = SearchEngineService()
+
+    @State private var input = ""
+    @State private var isVisible = false
+    @FocusState private var isTextFieldFocused: Bool
+    @State private var match: LauncherMain.Match?
+
+    var clearOverlay: Bool? = false
+
+    private func onTabPress() {
+        guard !input.isEmpty else { return }
+        if let searchEngine = searchEngineService.findSearchEngine(for: input) {
+            let customEngine = searchEngineService.settings.customSearchEngines
+                .first { $0.searchURL == searchEngine.searchURL }
+            match = searchEngine.toLauncherMatch(
+                originalAlias: input,
+                customEngine: customEngine
+            )
+            input = ""
+        }
+    }
+
+    private func onSubmit(_ newInput: String? = nil) {
+        let correctInput = newInput ?? input
+        var engineToUse = match
+
+        if engineToUse == nil,
+           let defaultEngine = searchEngineService.getDefaultSearchEngine(
+               for: tabManager.activeContainer?.id
+           )
+        {
+            let customEngine = searchEngineService.settings.customSearchEngines
+                .first { $0.searchURL == defaultEngine.searchURL }
+            engineToUse = defaultEngine.toLauncherMatch(
+                originalAlias: correctInput,
+                customEngine: customEngine
+            )
+        }
+
+        if let engine = engineToUse,
+           let url = searchEngineService.createSearchURL(for: engine, query: correctInput)
+        {
+            if appState.launcherSearchInCurrentTab, let activeTab = tabManager.activeTab {
+                // Search in current tab
+                activeTab.loadURL(url.absoluteString)
+            } else {
+                // Create new tab (default behavior)
+                tabManager
+                    .openTab(
+                        url: url,
+                        historyManager: historyManager,
+                        downloadManager: downloadManager,
+                        isPrivate: privacyMode.isPrivate
+                    )
+            }
+        }
+        appState.showLauncher = false
+        appState.launcherSearchInCurrentTab = false
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                Color.black.opacity(clearOverlay! ? 0 : 0.3)
+                    .ignoresSafeArea()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .animation(.easeOut(duration: 0.1), value: isVisible)
+                    .onTapGesture {
+                        if tabManager.activeTab != nil {
+                            isVisible = false
+                            DispatchQueue.main.async {
+                                appState.showLauncher = false
+                            }
+                        }
+                    }
+
+                LauncherMain(
+                    text: $input,
+                    match: $match,
+                    isFocused: $isTextFieldFocused,
+                    onTabPress: onTabPress,
+                    onSubmit: onSubmit
+                )
+                .gradientAnimatingBorder(
+                    color: match?.faviconBackgroundColor ?? match?.color ?? .clear,
+                    trigger: match != nil
+                )
+                .padding(.horizontal, 20)  // Add horizontal margins around the search bar
+                .offset(
+                    x: horizontalLauncherOffset(totalWidth: geo.size.width),
+                    y: 250
+                )
+                .scaleEffect(isVisible ? 1.0 : 0.9)
+                .opacity(isVisible ? 1.0 : 0.0)
+                .blur(radius: isVisible ? 0 : 2)
+                .animation(.easeOut(duration: 0.1), value: isVisible)
+                .onAppear {
+                    isVisible = true
+                    isTextFieldFocused = true
+                    searchEngineService.setTheme(theme)
+                }
+                .onChange(of: appState.showLauncher) { _, newValue in
+                    isVisible = newValue
+                    if !newValue {
+                        // Reset the flag when launcher is closed
+                        appState.launcherSearchInCurrentTab = false
+                    }
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .onExitCommand {
+            if tabManager.activeTab != nil {
+                isVisible = false
+                DispatchQueue.main.async {
+                    appState.showLauncher = false
+                }
+            }
+        }
+    }
+
+    private func horizontalLauncherOffset(totalWidth: CGFloat) -> CGFloat {
+        // Only offset when there's an active tab (web page visible), not on home view
+        guard tabManager.activeTab != nil else { return 0 }
+        guard isSidebarVisible else { return 0 }
+        let fraction = min(max(sidebarManager.currentFraction.value, 0), 1)
+        guard fraction > 0 else { return 0 }
+        let sidebarWidth = totalWidth * fraction
+        let direction: CGFloat = sidebarManager.sidebarPosition == .primary ? 1 : -1
+        return (sidebarWidth / 2) * direction
+    }
+
+    private var isSidebarVisible: Bool {
+        let sidebarSplitSide: SplitSide = sidebarManager.sidebarPosition == .primary ? .primary : .secondary
+        return sidebarManager.hiddenSidebar.side != sidebarSplitSide
+    }
+}
