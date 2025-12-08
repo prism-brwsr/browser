@@ -3,21 +3,20 @@
   <h1><b>Prism Browser</b></h1>
   <p><i>Prism is an open-source fork of the <a href="https://github.com/the-ora/browser">Ora Browser</a>.</i></p>
   <p>
-    Prism is a fast, secure, and beautiful browser built for macOS. Inspired by Safari and Arc, Prism delivers a clean, native experience that feels at home on macOS—without unnecessary bloat.
+    Prism is a fast, secure, and beautiful browser built for macOS. Prism delivers a clean, native experience that feels at home on macOS — without unnecessary bloat.
     <br>
   </p>
 </div>
 
 <p align="center">
-    <a href="https://www.apple.com/macos/"><img src="https://badgen.net/badge/macOS/15+/blue" alt="macOS"></a>
+    <a href="https://www.apple.com/macos/"><img src="https://badgen.net/badge/macOS/14+/blue" alt="macOS"></a>
     <a href="https://developer.apple.com/xcode/"><img src="https://badgen.net/badge/Xcode/15+/blue" alt="Xcode"></a>
     <a href="https://swift.org"><img src="https://badgen.net/badge/Swift/5.9/orange" alt="Swift Version"></a>
-    <a href="https://brew.sh"><img src="https://badgen.net/badge/Homebrew/required/yellow" alt="Homebrew"></a>
     <a href="LICENSE.md"><img src="https://badgen.net/badge/License/GPL-2.0/green" alt="License: MIT"></a>
 </p>
 
 > **⚠️ Disclaimer**  
-Prism is currently in early stages of development and **not yet ready for day-to-day use**. A beta version with core functionalities will be released soon.
+Prism is currently in early stages of development and **not yet ready for day-to-day use**. Some features are not available on all macOS versions yet.
 
 ## Features
 
@@ -29,21 +28,13 @@ Prism is currently in early stages of development and **not yet ready for day-to
 - Multiple search engine support
 - URL auto-completion and search suggestions
 - Quick Launcher for instant navigation and search
-- Developer mode
-
-## Roadmap
-
-You can view our current roadmap to beta in [ROADMAP.md](ROADMAP.md). 
-
-## Wiki
-
-See the [Wiki](https://github.com/prism-browser/prism/wiki) for comprehensive documentation, guides, and project information.
+- Developer mode 
 
 ## Installation
 
 1. Clone the repository and run setup:
    ```bash
-   git clone https://github.com/prism-browser/prism.git
+   git clone https://github.com/prism-brwsr/browser.git
    cd prism
    ./scripts/setup.sh
    ```
@@ -53,15 +44,9 @@ See the [Wiki](https://github.com/prism-browser/prism/wiki) for comprehensive do
    open Prism.xcodeproj
    ```
 
-For detailed setup instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style guidelines, and pull request process.
-
-Also see our [Code of Conduct](CODE_OF_CONDUCT.md) for community guidelines.
-
+Contributions are welcome! We are working on a contribution template and haven't published one yet! If you have any questions or ideas, feel free to show them off here.
 
 ### Regenerating the Xcode project
 
@@ -75,7 +60,7 @@ Also see our [Code of Conduct](CODE_OF_CONDUCT.md) for community guidelines.
 - In Xcode: Product → Test (⌘U)
 - Via CLI:
   ```bash
-  xcodebuild test -scheme prism -destination "platform=macOS"
+  xcodebuild test -scheme ora -destination "platform=macOS"
   ```
 
 
