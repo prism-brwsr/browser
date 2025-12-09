@@ -15,7 +15,7 @@ struct DownloadsListView: View {
                 Spacer()
 
                 if !downloadManager.recentDownloads.isEmpty {
-                    Button("Clear Completed") {
+                    Button("Clear") {
                         downloadManager.clearCompletedDownloads()
                     }
                     .font(.system(size: 11))

@@ -354,8 +354,9 @@ struct LauncherMain: View {
 
         // Set default focused element based on priority:
         // 1. Alias suggestions (with showTabShortcut) or math results - highest priority
-        // 2. "Search with [engine]" suggestion - default priority
-        // 3. First suggestion - fallback
+        // 2. Explicit URL suggestion (when input looks like a URL) - default priority
+        // 3. "Search with [engine]" suggestion - fallback priority
+        // 4. First suggestion - final fallback
         
         // Note: Setting focusedElement programmatically does NOT trigger text field updates
         // Text field only updates when user explicitly navigates (arrow keys or hover)
@@ -368,6 +369,9 @@ struct LauncherMain: View {
             suggestion.type == .mathResult
         }) {
             focusedElement = aliasOrMathSuggestion.id
+        } else if let urlSuggestion = suggestions.first(where: { $0.type == .suggestedLink }) {
+            // Prefer the explicit URL when the input looks like a URL (e.g., http/https/www or domain)
+            focusedElement = urlSuggestion.id
         } else if let searchWithSuggestion = suggestions.first(where: { suggestion in
             // Find the "Search with [engine]" suggestion
             suggestion.title.contains(" - Search with ") || suggestion.title.hasPrefix("Search with ")
@@ -592,7 +596,17 @@ struct LauncherMain: View {
             suggestions
                 .first(where: { $0.id == focusedElement })
         {
-            suggestion.action()
+            // If user requested to use the current tab (e.g., Cmd+Shift+G),
+            // prefer loading the URL in-place instead of opening a new tab.
+            if appState.launcherSearchInCurrentTab,
+               let url = suggestion.url,
+               let activeTab = tabManager.activeTab
+            {
+                activeTab.loadURL(url.absoluteString)
+            } else {
+                suggestion.action()
+            }
+            appState.launcherSearchInCurrentTab = false
             appState.showLauncher = false
         }
     }

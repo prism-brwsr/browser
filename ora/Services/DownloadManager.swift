@@ -114,8 +114,10 @@ class DownloadManager: ObservableObject {
     }
 
     func clearCompletedDownloads() {
-        let completedDownloads = recentDownloads.filter { $0.status == .completed }
-        for download in completedDownloads {
+        let finishedDownloads = recentDownloads.filter { 
+            $0.status == .completed || $0.status == .cancelled || $0.status == .failed 
+        }
+        for download in finishedDownloads {
             modelContext.delete(download)
         }
 

@@ -6,68 +6,48 @@ struct DownloadsWidget: View {
     @State private var isHovered = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Active downloads
-            if !downloadManager.activeDownloads.isEmpty {
-                VStack(spacing: 6) {
-                    ForEach(downloadManager.activeDownloads) { download in
-                        DownloadProgressView(download: download) {
-                            downloadManager.cancelDownload(download)
-                        }
-                    }
-                }
-                .padding(.bottom, 8)
-            }
-
-            // Downloads button
-            Button(action: {
-                downloadManager.isDownloadsPopoverOpen.toggle()
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.down.circle")
-                        .foregroundColor(downloadButtonColor)
+        Button(action: {
+            downloadManager.isDownloadsPopoverOpen.toggle()
+        }) {
+            ZStack {
+                // Icon
+                Image(systemName: "arrow.down.circle")
+                    .foregroundColor(downloadButtonColor)
+                    .frame(width: 12, height: 12)
+                
+                // Circular progress indicator - overlays the circle part of the SF Symbol
+                if !downloadManager.activeDownloads.isEmpty, let firstDownload = downloadManager.activeDownloads.first {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1.5)
                         .frame(width: 12, height: 12)
-
-                    // Text("Downloads")
-                    //     .font(.system(size: 13, weight: .medium))
-                    //     .foregroundColor(theme.foreground)
-
-                    // Spacer()
-
-                    // if !downloadManager.recentDownloads.isEmpty {
-                    //     Text("\(downloadManager.recentDownloads.count)")
-                    //         .font(.system(size: 11, weight: .medium))
-                    //         .foregroundColor(.secondary)
-                    //         .padding(.horizontal, 6)
-                    //         .padding(.vertical, 2)
-                    //         .background(theme.background.opacity(0.6))
-                    //         .cornerRadius(8)
-                    // }
-
-                    // Image(systemName: downloadManager.isDownloadsPopoverOpen ? "chevron.up" : "chevron.down")
-                    //     .foregroundColor(.secondary)
-                    //     .frame(width: 12, height: 12)
-                }
-                .padding(8)
-                .background(isHovered ? theme.invertedSolidWindowBackgroundColor.opacity(0.3) : .clear)
-                .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            .onHover { hovering in
-                withAnimation(.easeOut(duration: 0.15)) {
-                    isHovered = hovering
+                    
+                    Circle()
+                        .trim(from: 0, to: firstDownload.displayProgress)
+                        .stroke(.blue, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                        .frame(width: 12, height: 12)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.2), value: firstDownload.displayProgress)
                 }
             }
-            .popover(isPresented: $downloadManager.isDownloadsPopoverOpen, arrowEdge: .bottom) {
-                DownloadsListView()
-                    .environmentObject(downloadManager)
+            .padding(8)
+            .background(isHovered ? theme.invertedSolidWindowBackgroundColor.opacity(0.3) : .clear)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.15)) {
+                isHovered = hovering
             }
+        }
+        .popover(isPresented: $downloadManager.isDownloadsPopoverOpen, arrowEdge: .bottom) {
+            DownloadsListView()
+                .environmentObject(downloadManager)
         }
     }
 
     private var downloadButtonColor: Color {
         if !downloadManager.activeDownloads.isEmpty {
-            return .blue
+            return .secondary
         } else if downloadManager.recentDownloads.contains(where: { $0.status == .completed }) {
             return .green
         } else {

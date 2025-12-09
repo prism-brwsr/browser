@@ -364,23 +364,26 @@ class SearchEngineService: ObservableObject {
         return nil
     }
 
+    private func encodeQuery(_ query: String) -> String {
+        var allowedCharacters = CharacterSet.urlQueryAllowed
+        allowedCharacters.remove(charactersIn: "+") // Keep literal plus signs in queries
+        return query.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? ""
+    }
+
     func createSearchURL(for engine: SearchEngine, query: String) -> URL? {
-        let encodedQuery =
-            query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedQuery = encodeQuery(query)
         let urlString = engine.searchURL.replacingOccurrences(of: "{query}", with: encodedQuery)
         return URL(string: urlString)
     }
 
     func createSearchURL(for match: LauncherMain.Match, query: String) -> URL? {
-        let encodedQuery =
-            query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedQuery = encodeQuery(query)
         let urlString = match.searchURL.replacingOccurrences(of: "{query}", with: encodedQuery)
         return URL(string: urlString)
     }
 
     func createSuggestionsURL(urlString: String, query: String) -> URL? {
-        let encodedQuery =
-            query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedQuery = encodeQuery(query)
         let urlString = urlString.replacingOccurrences(of: "{query}", with: encodedQuery)
         return URL(string: urlString)
     }
