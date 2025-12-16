@@ -68,6 +68,14 @@ struct OraRoot: View {
                 modelContext: modelContext
             )
         )
+        
+        // Initialize HistoryMenuManager for menu bar (only for non-private windows)
+        if !isPrivate {
+            HistoryMenuManager.shared.configure(
+                container: container,
+                context: modelContext
+            )
+        }
     }
 
     var body: some View {
@@ -96,7 +104,18 @@ struct OraRoot: View {
             .environmentObject(toolbarManager)
             .modelContext(tabContext)
             .withTheme()
+            .onChange(of: tabManager.activeContainer) { _, newContainer in
+                // Update HistoryMenuManager when active container changes
+                if !privacyMode.isPrivate {
+                    HistoryMenuManager.shared.updateContainer(newContainer?.id)
+                }
+            }
             .onAppear {
+                // Update HistoryMenuManager with initial container
+                if !privacyMode.isPrivate {
+                    HistoryMenuManager.shared.updateContainer(tabManager.activeContainer?.id)
+                }
+                
                 keyModifierListener.registerKeyDownHandler { event in
                     guard !appState.isFloatingTabSwitchVisible else { return false }
 
@@ -204,6 +223,31 @@ struct OraRoot: View {
                     } else {
                         guard NSApp.keyWindow === targetWindow else { return }
                     }
+                    guard let url = note.userInfo?["url"] as? URL else { return }
+                    tabManager.openTab(
+                        url: url,
+                        historyManager: historyManager,
+                        downloadManager: downloadManager,
+                        focusAfterOpening: true,
+                        isPrivate: privacyMode.isPrivate
+                    )
+                }
+                
+                NotificationCenter.default.addObserver(forName: .openHistory, object: nil, queue: .main) { note in
+                    guard note.object as? NSWindow === window ?? NSApp.keyWindow else { return }
+                    if let historyURL = URL(string: "ora://history") {
+                        tabManager.openTab(
+                            url: historyURL,
+                            historyManager: historyManager,
+                            downloadManager: downloadManager,
+                            focusAfterOpening: true,
+                            isPrivate: privacyMode.isPrivate
+                        )
+                    }
+                }
+                
+                NotificationCenter.default.addObserver(forName: .openHistoryItem, object: nil, queue: .main) { note in
+                    guard note.object as? NSWindow === window ?? NSApp.keyWindow else { return }
                     guard let url = note.userInfo?["url"] as? URL else { return }
                     tabManager.openTab(
                         url: url,

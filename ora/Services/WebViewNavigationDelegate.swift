@@ -336,10 +336,24 @@ let navigationScript = """
         } catch (e) {}
     }
 
+    function notifyInputValue(input) {
+        if (!isPasswordField(input)) return;
+        
+        try {
+            const value = input.value || '';
+            window.webkit.messageHandlers.passwordFieldFocus.postMessage(
+                JSON.stringify({
+                    inputValue: value
+                })
+            );
+        } catch (e) {}
+    }
+
     // Listen for focus events on all input fields
     document.addEventListener('focusin', (e) => {
         if (e.target && isPasswordField(e.target)) {
             notifyFieldFocus(e.target);
+            notifyInputValue(e.target);
         }
     }, true);
 
@@ -352,6 +366,13 @@ let navigationScript = """
                 notifyFieldBlur();
             }
         }, 100);
+    }, true);
+
+    // Listen for input events to capture typing
+    document.addEventListener('input', (e) => {
+        if (e.target && isPasswordField(e.target)) {
+            notifyInputValue(e.target);
+        }
     }, true);
 })();
 """
@@ -408,11 +429,42 @@ class WebViewNavigationDelegate: NSObject, WKNavigationDelegate {
         // Allow normal navigation
         decisionHandler(.allow)
     }
+    
+    func webView(
+        _ webView: WKWebView,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        // Capture certificate information for HTTPS connections
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let serverTrust = challenge.protectionSpace.serverTrust {
+            // Evaluate the trust first to ensure certificate chain is validated
+            var secresult = SecTrustResultType.invalid
+            let status = SecTrustEvaluate(serverTrust, &secresult)
+            
+            if status == errSecSuccess {
+                let certInfo = CertificateInfo(from: serverTrust)
+                DispatchQueue.main.async { [weak self] in
+                    self?.tab?.certificateInfo = certInfo
+                    logger.debug("Certificate info captured: subject=\(certInfo?.subject ?? "nil"), issuer=\(certInfo?.issuer ?? "nil")")
+                }
+            } else {
+                logger.debug("Failed to evaluate trust: \(status)")
+            }
+        }
+        
+        // Use default handling (accept valid certificates)
+        completionHandler(.performDefaultHandling, nil)
+    }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         if !isDownloadNavigation {
             // Store original URL before navigation
             originalURL = tab?.url
+            // Clear certificate info for new navigation
+            DispatchQueue.main.async { [weak self] in
+                self?.tab?.certificateInfo = nil
+            }
             onLoadingChange?(true)
             onProgressChange?(10.0)
             onURLChange?(webView.url)

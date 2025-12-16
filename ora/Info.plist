@@ -56,9 +56,26 @@
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>Prism Browser Internal</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ora</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>NSUserActivityTypeBrowsingWeb</string>
@@ -66,7 +83,7 @@
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>org.sparkle-project.InstallerLauncher</key>
-		<string>Developer ID Application: YOUR_APPLE_DEV_NAME (CLIENT_ID)</string>
+		<string>Developer ID Application: IVAN TANCHEV IVANOV (8T59ZR74LZ)</string>
 	</dict>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>

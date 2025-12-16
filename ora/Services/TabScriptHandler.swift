@@ -72,21 +72,28 @@ class TabScriptHandler: NSObject, WKScriptMessageHandler {
             else { return }
             
             struct PasswordFieldFocus: Decodable {
-                let focused: Bool
+                let focused: Bool?
                 let x: Double?
                 let y: Double?
                 let width: Double?
                 let height: Double?
+                let inputValue: String?
             }
             
             if let payload = try? JSONDecoder().decode(PasswordFieldFocus.self, from: data) {
                 DispatchQueue.main.async {
-                    tab.passwordFieldFocused = payload.focused
-                    if payload.focused, let x = payload.x, let y = payload.y,
-                       let width = payload.width, let height = payload.height {
-                        tab.passwordFieldRect = CGRect(x: x, y: y, width: width, height: height)
-                    } else {
-                        tab.passwordFieldRect = .zero
+                    if let focused = payload.focused {
+                        tab.passwordFieldFocused = focused
+                        if focused, let x = payload.x, let y = payload.y,
+                           let width = payload.width, let height = payload.height {
+                            tab.passwordFieldRect = CGRect(x: x, y: y, width: width, height: height)
+                        } else {
+                            tab.passwordFieldRect = .zero
+                            tab.passwordFieldInputValue = ""
+                        }
+                    }
+                    if let inputValue = payload.inputValue {
+                        tab.passwordFieldInputValue = inputValue
                     }
                 }
             }

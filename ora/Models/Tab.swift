@@ -57,6 +57,9 @@ class Tab: ObservableObject, Identifiable {
     @Transient var isPrivate: Bool = false
     @Transient @Published var passwordFieldFocused: Bool = false
     @Transient @Published var passwordFieldRect: CGRect = .zero
+    @Transient @Published var passwordFieldInputValue: String = ""
+    @Transient @Published var showHistoryView: Bool = false
+    @Transient var certificateInfo: CertificateInfo?
 
     @Relationship(inverse: \TabContainer.tabs) var container: TabContainer
 
@@ -315,7 +318,21 @@ class Tab: ObservableObject, Identifiable {
         // Load after a short delay to ensure layout
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
             let url = if self.type != .normal { self.savedURL } else { self.url }
-            self.webView.load(URLRequest(url: url ?? self.url))
+            let targetURL = url ?? self.url
+            
+            // Check for internal URLs like ora://history
+            if targetURL.scheme == "ora" {
+                if targetURL.host == "history" {
+                    self.showHistoryView = true
+                    self.isWebViewReady = true
+                    self.hasNavigationError = false
+                    return
+                }
+            }
+            
+            // Reset history view flag for other URLs
+            self.showHistoryView = false
+            self.webView.load(URLRequest(url: targetURL))
             self.isWebViewReady = true
         }
     }
@@ -343,6 +360,25 @@ class Tab: ObservableObject, Identifiable {
     func loadURL(_ urlString: String) {
         lastAccessedAt = Date()
         let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check for ora://history URL scheme
+        if input.lowercased() == "ora://history" || input.lowercased().hasPrefix("ora://history") {
+            // Stop any ongoing navigation
+            webView.stopLoading()
+            
+            if let historyURL = URL(string: "ora://history") {
+                self.url = historyURL
+                self.urlString = historyURL.absoluteString
+            }
+            showHistoryView = true
+            isWebViewReady = true
+            hasNavigationError = false
+            // Don't record this in history - it's an internal page
+            return
+        }
+
+        // Reset history view flag for other URLs
+        showHistoryView = false
 
         // 1) Try to construct a direct URL (has scheme or valid domain+TLD/IP)
         if let directURL = constructURL(from: input) {
@@ -414,6 +450,43 @@ class Tab: ObservableObject, Identifiable {
             let request = URLRequest(url: url)
             webView.load(request)
         }
+    }
+}
+
+extension Tab {
+    /// Fill the current page's username and password fields using the provided password item.
+    func fillPassword(from item: PasswordItem, reason: String = "Authenticate to fill the selected password") async {
+        let authenticated = await PasswordKeychain.authenticateForFilling(reason: reason)
+        guard authenticated,
+              let password = try? PasswordKeychain.loadPassword(for: item.keychainID)
+        else {
+            return
+        }
+
+        let usernameJSON = (try? JSONEncoder().encode(item.username))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "\"\""
+        let passwordJSON = (try? JSONEncoder().encode(password))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "\"\""
+
+        let js = """
+        (function(u, p) {
+            function setInput(el, val) {
+                if (!el) return;
+                el.focus();
+                el.value = val;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            var pass = document.querySelector('input[type="password"]');
+            if (!pass) return;
+            var form = pass.form || document;
+            var user = form.querySelector('input[type="email"], input[type="text"], input[name*="user" i], input[name*="mail" i], input[id*="user" i], input[id*="mail" i]');
+            setInput(user, u);
+            setInput(pass, p);
+        })(\(usernameJSON), \(passwordJSON));
+        """
+
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 }
 

@@ -47,6 +47,18 @@ struct Theme: Equatable {
     var solidWindowBackgroundColor: Color {
         colorScheme == .dark ? self.primaryDark : self.primary
     }
+    
+    /// Returns a contrasting foreground color for text on the solid window background
+    var contrastingForegroundForSolidBackground: Color {
+        let bgColor = solidWindowBackgroundColor
+        return bgColor.isLightColor ? .black : .white
+    }
+    
+    /// Returns a contrasting foreground color with reduced opacity for secondary text on the solid window background
+    var contrastingForegroundForSolidBackgroundSecondary: Color {
+        let bgColor = solidWindowBackgroundColor
+        return bgColor.isLightColor ? Color.black.opacity(0.7) : Color.white.opacity(0.7)
+    }
 
     var invertedSolidWindowBackgroundColor: Color {
         colorScheme == .dark ? self.primary : self.primaryDark

@@ -29,7 +29,11 @@ struct BrowserWebContentView: View {
             }
 
             if tab.isWebViewReady {
-                if tab.hasNavigationError, let error = tab.navigationError {
+                if tab.showHistoryView {
+                    // Show history viewer
+                    HistoryView()
+                        .id(tab.id)
+                } else if tab.hasNavigationError, let error = tab.navigationError {
                     StatusPageView(
                         error: error,
                         failedURL: tab.failedURL,

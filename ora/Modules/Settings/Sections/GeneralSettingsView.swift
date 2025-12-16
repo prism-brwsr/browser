@@ -17,15 +17,16 @@ struct GeneralSettingsView: View {
                         HStack {
                             Text("Prism")
                                 .font(.headline)
+                                .foregroundColor(theme.contrastingForegroundForSolidBackground)
                             Spacer()
                             Text(getAppVersion())
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.contrastingForegroundForSolidBackgroundSecondary)
                         }
 
                         Text("Fast, secure, and beautiful browser built for macOS")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.contrastingForegroundForSolidBackgroundSecondary)
                     }
                     .padding(12)
                     .background(theme.solidWindowBackgroundColor)
@@ -34,8 +35,17 @@ struct GeneralSettingsView: View {
                     if !defaultBrowserManager.isDefault {
                         HStack {
                             Text("Born for your Mac. Make Prism your default browser.")
+                                .foregroundColor(theme.contrastingForegroundForSolidBackground)
                             Spacer()
                             Button("Set Prism as default") { DefaultBrowserManager.requestSetAsDefault() }
+                                .foregroundColor(theme.contrastingForegroundForSolidBackground)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(theme.contrastingForegroundForSolidBackground.opacity(0.3), lineWidth: 1)
+                                )
+                                .buttonStyle(.plain)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(8)

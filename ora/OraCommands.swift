@@ -7,6 +7,7 @@ struct OraCommands: Commands {
     @AppStorage("ui.toolbar.hidden") private var isToolbarHidden: Bool = false
     @AppStorage("ui.toolbar.showfullurl") private var showFullURL: Bool = true
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var historyMenuManager = HistoryMenuManager.shared
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -28,9 +29,9 @@ struct OraCommands: Commands {
                 )
             }.keyboardShortcut(KeyboardShortcuts.Address.searchInCurrentTab.keyboardShortcut)
 
-            Divider()
-
-            ImportDataButton()
+//            Divider()
+//
+//            ImportDataButton()
 
             Divider()
 
@@ -174,6 +175,45 @@ struct OraCommands: Commands {
                 }
                 .keyboardShortcut(KeyboardShortcuts.Tabs.keyboardShortcut(for: index))
             }
+        }
+
+        CommandMenu("History") {
+            // Recent history items (last 10)
+            if historyMenuManager.recentHistory.isEmpty {
+                Button("No History") {}
+                    .disabled(true)
+            } else {
+                ForEach(historyMenuManager.recentHistory) { history in
+                    Button {
+                        NotificationCenter.default.post(
+                            name: .openHistoryItem,
+                            object: NSApp.keyWindow,
+                            userInfo: ["url": history.url]
+                        )
+                    } label: {
+                        Label {
+                            Text(history.title.isEmpty ? (history.url.host ?? "Untitled") : history.title)
+                        } icon: {
+                            AsyncImage(url: history.faviconURL) { image in
+                                image
+                                    .resizable()
+                                    .frame(width: 16, height: 16)
+                            } placeholder: {
+                                Image(systemName: "globe")
+                                    .resizable()
+                                    .frame(width: 16, height: 16)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            Button("Show Full History") {
+                NotificationCenter.default.post(name: .openHistory, object: NSApp.keyWindow)
+            }
+            .keyboardShortcut("y", modifiers: .command)
         }
 
         CommandGroup(replacing: .appInfo) {

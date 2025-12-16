@@ -168,6 +168,11 @@ class TabManager: ObservableObject {
     }
 
     func activateContainer(_ container: TabContainer, activateLastAccessedTab: Bool = true) {
+        // Only provide haptic feedback if switching to a different container
+        if activeContainer?.id != container.id {
+            performHapticFeedback(pattern: .generic)
+        }
+        
         activeContainer = container
         container.lastAccessedAt = Date()
 
@@ -272,6 +277,65 @@ class TabManager: ObservableObject {
         loadSilently: Bool = false
     ) -> Tab? {
         if let container = activeContainer {
+            // Handle internal URLs like ora://history
+            if url.scheme == "ora" {
+                let newTab = Tab(
+                    url: url,
+                    title: url.scheme == "ora" && url.host == "history" ? "History" : "New Tab",
+                    favicon: nil,
+                    container: container,
+                    type: .normal,
+                    isPlayingMedia: false,
+                    order: container.tabs.count + 1,
+                    historyManager: historyManager,
+                    downloadManager: downloadManager,
+                    tabManager: self,
+                    isPrivate: isPrivate
+                )
+                modelContext.insert(newTab)
+                container.lastAccessedAt = Date()
+                
+                // Save first to ensure the relationship is persisted
+                try? modelContext.save()
+                
+                // On Sequoia, we need to delay slightly to ensure SwiftData syncs the relationship
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                    guard let self = self else { return }
+                    // Fetch the container fresh from the context to get the updated relationship
+                    let containerId = container.id
+                    if let refreshedContainer = try? self.modelContext.fetch(
+                        FetchDescriptor<TabContainer>(
+                            predicate: #Predicate<TabContainer> { container in
+                                container.id == containerId
+                            }
+                        )
+                    ).first {
+                        // Ensure activeContainer reflects the updated relationship
+                        if self.activeContainer?.id == containerId {
+                            // Update the container reference to trigger UI updates
+                            self.activeContainer = refreshedContainer
+                        }
+                    }
+                }
+
+                if focusAfterOpening {
+                    activateTab(newTab)
+                }
+                if focusAfterOpening || loadSilently {
+                    // Initialize the WebView for the new active tab
+                    newTab.restoreTransientState(
+                        historyManager: historyManager,
+                        downloadManager: downloadManager ?? DownloadManager(
+                            modelContainer: modelContainer,
+                            modelContext: modelContext
+                        ),
+                        tabManager: self,
+                        isPrivate: isPrivate
+                    )
+                }
+                return newTab
+            }
+            
             if let host = url.host {
                 let faviconURL = URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=64")
 

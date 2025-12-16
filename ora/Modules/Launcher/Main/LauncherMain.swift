@@ -546,6 +546,7 @@ struct LauncherMain: View {
                         let suggestion = LauncherSuggestion(
                             type: .suggestedQuery,
                             title: ss,
+                            showTabShortcut: true,
                             action: { onSubmit(ss) }
                         )
                         if insertIndex <= suggestions.count {
@@ -592,10 +593,19 @@ struct LauncherMain: View {
     }
 
     func executeCommand() {
-        if let suggestion =
-            suggestions
-                .first(where: { $0.id == focusedElement })
-        {
+        if let suggestion = suggestions.first(where: { $0.id == focusedElement }) {
+            // If the focused suggestion exposes a "Press Tab" style shortcut,
+            // treat Enter exactly the same as Tab.
+            //
+            // This ensures that:
+            // - Alias shortcuts (e.g. "duck") behave the same for Tab and Enter
+            // - Math results and other shortcut-style suggestions also respond to Enter
+            // - The launcher only closes if the shortcut's action itself closes it
+            if suggestion.showTabShortcut {
+                suggestion.action()
+                return
+            }
+
             // If user requested to use the current tab (e.g., Cmd+Shift+G),
             // prefer loading the URL in-place instead of opening a new tab.
             if appState.launcherSearchInCurrentTab,

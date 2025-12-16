@@ -28,11 +28,12 @@ struct SearchEngineSettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Search Engine Library")
                                     .font(.headline)
+                                    .foregroundColor(theme.contrastingForegroundForSolidBackground)
                                 Text(
                                     "Manage available search engines and set global defaults. Individual spaces can override these in the Spaces tab."
                                 )
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(theme.contrastingForegroundForSolidBackgroundSecondary)
                             }
                             Spacer()
                             Button(showingAddForm ? "Cancel" : "Add Custom Engine") {
@@ -42,6 +43,14 @@ struct SearchEngineSettingsView: View {
                                     showingAddForm = true
                                 }
                             }
+                            .foregroundColor(theme.contrastingForegroundForSolidBackground)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(theme.contrastingForegroundForSolidBackground.opacity(0.3), lineWidth: 1)
+                            )
+                            .buttonStyle(.plain)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -52,7 +61,7 @@ struct SearchEngineSettingsView: View {
                     if showingAddForm {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Add New Search Engine")
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(theme.contrastingForegroundForSolidBackgroundSecondary)
 
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {

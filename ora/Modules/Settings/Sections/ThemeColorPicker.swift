@@ -34,27 +34,6 @@ struct ThemeColorPicker: View {
                         settings.themePrimaryColor = nil
                     }
                 )
-
-                // Accent Color
-                ColorPickerRow(
-                    title: "Accent Color",
-                    description: "Used for interactive elements and highlights",
-                    color: Binding(
-                        get: {
-                            if let hex = settings.themeAccentColor {
-                                return Color(hex: hex)
-                            }
-                            return Color(hex: "#575dff")
-                        },
-                        set: { newColor in
-                            settings.themeAccentColor = newColor.toHex()
-                        }
-                    ),
-                    defaultColor: Color(hex: "#575dff"),
-                    onReset: {
-                        settings.themeAccentColor = nil
-                    }
-                )
             }
         }
     }
